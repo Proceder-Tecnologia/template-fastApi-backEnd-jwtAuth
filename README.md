@@ -6,10 +6,12 @@ Template completo de backend FastAPI com autenticação JWT, seguindo arquitetur
 
 - ✅ Autenticação JWT completa (Access + Refresh tokens)
 - ✅ Registro e login de usuários
+- ✅ Sistema de permissões (Superuser/Admin/User)
+- ✅ Registro protegido por Basic Auth
 - ✅ Logout com blacklist de tokens
 - ✅ Endpoint para obter dados do usuário logado
 - ✅ Arquitetura limpa (Domain, Application, Infrastructure, Interface)
-- ✅ SQLModel + MySQL
+- ✅ SQLModel + MySQL (Async)
 - ✅ Redis para cache e gerenciamento de tokens
 - ✅ Docker + Docker Compose
 - ✅ Configurações via variáveis de ambiente
@@ -93,7 +95,7 @@ A aplicação estará disponível em: `http://localhost:8000`
 
 | Método | Endpoint | Descrição | Autenticação |
 |--------|----------|-----------|--------------|
-| POST | `/api/v1/auth/register` | Registrar novo usuário | ❌ |
+| POST | `/api/v1/auth/register` | Registrar novo usuário | 🔐 Basic Auth |
 | POST | `/api/v1/auth/login` | Login do usuário | ❌ |
 | POST | `/api/v1/auth/refresh` | Renovar access token | ❌ |
 | POST | `/api/v1/auth/logout` | Logout do usuário | ✅ |
@@ -107,19 +109,38 @@ A aplicação estará disponível em: `http://localhost:8000`
 | GET | `/health` | Health check |
 | GET | `/docs` | Documentação Swagger |
 
+## 🔐 Sistema de Permissões
+
+### Tipos de Usuário
+
+- **Superuser** (`is_superuser: true`): Acesso total ao sistema
+- **User** (`is_superuser: false`): Acesso padrão limitado
+
+### Registro de Usuários
+
+O endpoint `/api/v1/auth/register` é protegido por **Basic Authentication** para evitar registros não autorizados.
+
+**Credenciais de Administrador (configuráveis via .env):**
+- Username: `admin` (padrão)
+- Password: `admin123` (padrão)
+
+**IMPORTANTE:** Altere essas credenciais em produção!
+
 ## 🔐 Exemplos de Uso
 
-### 1. Registrar Usuário
+### 1. Registrar Usuário (Requer Basic Auth)
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/auth/register" \
+  -u "admin:admin123" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
     "username": "johndoe",
     "firstname": "John",
     "lastname": "Doe",
-    "password": "strongpassword123"
+    "password": "strongpassword123",
+    "is_superuser": false
   }'
 ```
 
@@ -132,6 +153,7 @@ curl -X POST "http://localhost:8000/api/v1/auth/register" \
   "firstname": "John",
   "lastname": "Doe",
   "is_active": true,
+  "is_superuser": false,
   "last_login": null,
   "created_at": "2024-01-01T10:00:00",
   "updated_at": "2024-01-01T10:00:00"
@@ -174,6 +196,7 @@ curl -X GET "http://localhost:8000/api/v1/auth/me" \
   "firstname": "John",
   "lastname": "Doe",
   "is_active": true,
+  "is_superuser": false,
   "last_login": "2024-01-01T10:05:00",
   "created_at": "2024-01-01T10:00:00",
   "updated_at": "2024-01-01T10:05:00"
@@ -207,7 +230,8 @@ curl -X POST "http://localhost:8000/api/v1/auth/logout" \
 | `REDIS_URL` | URL de conexão Redis | `redis://localhost:6379/0` |
 | `SECRET_KEY` | Chave secreta para JWT | `your-super-secret-key-change-in-production` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Expiração do access token (minutos) | `30` |
-| `REFRESH_TOKEN_EXPIRE_DAYS` | Expiração do refresh token (dias) | `7` |
+| `SUPERUSER_USERNAME` | Username para registro de usuários | `admin` |
+| `SUPERUSER_PASSWORD` | Password para registro de usuários | `admin123` |
 
 ## 🏗️ Arquitetura
 
@@ -222,6 +246,8 @@ Este projeto segue os princípios da **Arquitetura Limpa**:
 
 - Senhas hasheadas com bcrypt
 - JWT com access e refresh tokens
+- Registro protegido por Basic Authentication
+- Sistema de permissões com superuser/user
 - Blacklist de tokens no logout
 - Validação de tokens em todas as rotas protegidas
 - CORS configurado
