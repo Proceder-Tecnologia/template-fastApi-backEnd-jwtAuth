@@ -1,17 +1,30 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBasicCredentials
 from app.interface.schemas.auth import UserCreate, UserLogin, Token, RefreshToken, UserResponse
+from app.interface.schemas.admin import AdminCreate
 from app.interface.api.dependencies.auth import get_auth_service, get_current_user_id, security
 from app.interface.api.dependencies.superuser import verify_superuser_credentials
+from app.interface.api.dependencies.permissions import verify_superuser
 from app.application.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register(
-    user_data: UserCreate,
+@router.post("/create-admin", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_admin(
+    admin_data: AdminCreate,
     auth_service: AuthService = Depends(get_auth_service),
     credentials: HTTPBasicCredentials = Depends(verify_superuser_credentials)
+):
+    try:
+        return await auth_service.create_admin(admin_data)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.post("/create-user", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_user(
+    user_data: UserCreate,
+    auth_service: AuthService = Depends(get_auth_service),
+    current_user_id: str = Depends(verify_superuser)
 ):
     try:
         return await auth_service.register(user_data)

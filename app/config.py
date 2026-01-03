@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     # Superuser for registration
     superuser_username: str = "admin"
     superuser_password: str = "admin123"
+    admin_creation_token: str = "create-admin-secure-token-2024"
     
     class Config:
         env_file = ".env"

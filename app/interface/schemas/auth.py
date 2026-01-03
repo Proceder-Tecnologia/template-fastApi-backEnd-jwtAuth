@@ -8,7 +8,6 @@ class UserCreate(BaseModel):
     firstname: str
     lastname: str
     password: str
-    is_superuser: bool = False
 
 class UserLogin(BaseModel):
     email: EmailStr
