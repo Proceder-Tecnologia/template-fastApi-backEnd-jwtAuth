@@ -1,7 +1,5 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlmodel.ext.asyncio.session import AsyncSession
-from app.infrastructure.database.connection import get_session
 from app.infrastructure.database.repositories.user_repository import SQLUserRepository
 from app.infrastructure.security.jwt_service import SecurityService
 from app.infrastructure.cache.redis_service import RedisService
@@ -9,8 +7,8 @@ from app.application.services.auth_service import AuthService
 
 security = HTTPBearer()
 
-def get_user_repository(session: AsyncSession = Depends(get_session)) -> SQLUserRepository:
-    return SQLUserRepository(session)
+def get_user_repository() -> SQLUserRepository:
+    return SQLUserRepository()
 
 def get_auth_service(user_repository: SQLUserRepository = Depends(get_user_repository)) -> AuthService:
     return AuthService(user_repository)

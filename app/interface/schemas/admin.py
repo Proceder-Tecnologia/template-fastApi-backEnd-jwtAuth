@@ -6,4 +6,3 @@ class AdminCreate(BaseModel):
     firstname: str
     lastname: str
     password: str
-    admin_token: str

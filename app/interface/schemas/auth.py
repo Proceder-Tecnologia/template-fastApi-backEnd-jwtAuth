@@ -25,10 +25,9 @@ class UserResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-class Token(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
+class LoginResponse(BaseModel):
+    message: str = "Login successful"
+    user: UserResponse
 
 class TokenData(BaseModel):
     user_id: Optional[str] = None

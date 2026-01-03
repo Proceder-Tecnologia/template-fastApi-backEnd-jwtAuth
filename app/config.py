@@ -16,6 +16,16 @@ class Settings(BaseSettings):
     # API
     api_v1_str: str = "/api/v1"
     project_name: str = "FastAPI JWT Auth Template"
+    environment: str = "development"
+    
+    # Cookie settings
+    @property
+    def cookie_secure(self) -> bool:
+        return self.environment == "production"
+    
+    @property
+    def cookie_httponly(self) -> bool:
+        return self.environment == "production"
     
     # Superuser for registration
     superuser_username: str = "admin"
