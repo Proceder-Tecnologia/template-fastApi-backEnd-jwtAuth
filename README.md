@@ -5,11 +5,13 @@ Template completo de backend FastAPI com autenticação JWT, seguindo arquitetur
 ## 🚀 Funcionalidades
 
 - ✅ Autenticação JWT completa (Access + Refresh tokens)
-- ✅ Registro e login de usuários
+- ✅ Tokens em cookies HttpOnly (seguro para React)
 - ✅ Sistema de permissões (Superuser/Admin/User)
-- ✅ Registro protegido por Basic Auth
+- ✅ Criação de admin protegida (Basic Auth + Token)
+- ✅ Criação de usuários por superuser autenticado
 - ✅ Logout com blacklist de tokens
 - ✅ Endpoint para obter dados do usuário logado
+- ✅ Controle de transações com rollback automático
 - ✅ Arquitetura limpa (Domain, Application, Infrastructure, Interface)
 - ✅ SQLModel + MySQL (Async)
 - ✅ Redis para cache e gerenciamento de tokens
@@ -95,11 +97,12 @@ A aplicação estará disponível em: `http://localhost:8000`
 
 | Método | Endpoint | Descrição | Autenticação |
 |--------|----------|-----------|--------------|
-| POST | `/api/v1/auth/register` | Registrar novo usuário | 🔐 Basic Auth |
+| POST | `/api/v1/auth/create-admin` | Criar admin/superuser | 🔐 Basic Auth + Token |
+| POST | `/api/v1/auth/create-user` | Criar usuário normal | 🍪 Cookie (Superuser) |
 | POST | `/api/v1/auth/login` | Login do usuário | ❌ |
-| POST | `/api/v1/auth/refresh` | Renovar access token | ❌ |
-| POST | `/api/v1/auth/logout` | Logout do usuário | ✅ |
-| GET | `/api/v1/auth/me` | Obter dados do usuário logado | ✅ |
+| POST | `/api/v1/auth/refresh` | Renovar tokens | 🍪 Cookie |
+| POST | `/api/v1/auth/logout` | Logout do usuário | 🍪 Cookie |
+| GET | `/api/v1/auth/me` | Obter dados do usuário logado | 🍪 Cookie |
 
 ### Outros
 
@@ -113,60 +116,63 @@ A aplicação estará disponível em: `http://localhost:8000`
 
 ### Tipos de Usuário
 
-- **Superuser** (`is_superuser: true`): Acesso total ao sistema
+- **Superuser** (`is_superuser: true`): Acesso total ao sistema, pode criar novos usuários
 - **User** (`is_superuser: false`): Acesso padrão limitado
 
-### Registro de Usuários
+### Criação de Admins
 
-O endpoint `/api/v1/auth/register` é protegido por **Basic Authentication** para evitar registros não autorizados.
+O endpoint `/api/v1/auth/create-admin` é protegido por **Basic Authentication + Token fixo** para máxima segurança.
 
-**Credenciais de Administrador (configuráveis via .env):**
-- Username: `admin` (padrão)
-- Password: `admin123` (padrão)
+**Credenciais necessárias:**
+- Basic Auth: `admin:admin123` (configurável via .env)
+- Token fixo: `create-admin-secure-token-2024` (configurável via .env)
 
-**IMPORTANTE:** Altere essas credenciais em produção!
+### Criação de Usuários
+
+O endpoint `/api/v1/auth/create-user` requer autenticação via **cookie de superuser**.
+
+**IMPORTANTE:** Altere as credenciais padrão em produção!
+
+## 🍪 Sistema de Cookies
+
+### Autenticação Transparente
+
+- **Tokens em cookies**: Access e refresh tokens são automaticamente salvos em cookies
+- **HttpOnly em produção**: Cookies seguros apenas em ambiente de produção
+- **Autenticação automática**: Rotas protegidas usam cookies automaticamente
+- **Perfeito para React**: Não precisa gerenciar tokens manualmente
+
+### Configuração por Ambiente
+
+- **Development**: `httponly=false, secure=false` (facilita debug)
+- **Production**: `httponly=true, secure=true` (máxima segurança)
 
 ## 🔐 Exemplos de Uso
 
-### 1. Registrar Usuário (Requer Basic Auth)
+### 1. Criar Admin (Requer Basic Auth + Token)
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/auth/register" \
+curl -X POST "http://localhost:8000/api/v1/auth/create-admin" \
   -u "admin:admin123" \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "user@example.com",
-    "username": "johndoe",
-    "firstname": "John",
-    "lastname": "Doe",
+    "email": "admin@example.com",
+    "username": "admin",
+    "firstname": "Admin",
+    "lastname": "User",
     "password": "strongpassword123",
-    "is_superuser": false
+    "admin_token": "create-admin-secure-token-2024"
   }'
 ```
 
-**Resposta:**
-```json
-{
-  "id": "uuid-here",
-  "email": "user@example.com",
-  "username": "johndoe",
-  "firstname": "John",
-  "lastname": "Doe",
-  "is_active": true,
-  "is_superuser": false,
-  "last_login": null,
-  "created_at": "2024-01-01T10:00:00",
-  "updated_at": "2024-01-01T10:00:00"
-}
-```
-
-### 2. Login
+### 2. Login (Define Cookies Automaticamente)
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/auth/login" \
   -H "Content-Type: application/json" \
+  -c cookies.txt \
   -d '{
-    "email": "user@example.com",
+    "email": "admin@example.com",
     "password": "strongpassword123"
   }'
 ```
@@ -174,50 +180,56 @@ curl -X POST "http://localhost:8000/api/v1/auth/login" \
 **Resposta:**
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "bearer"
+  "message": "Login successful",
+  "user": {
+    "id": "uuid-here",
+    "email": "admin@example.com",
+    "username": "admin",
+    "firstname": "Admin",
+    "lastname": "User",
+    "is_active": true,
+    "is_superuser": true,
+    "last_login": "2024-01-01T10:05:00",
+    "created_at": "2024-01-01T10:00:00",
+    "updated_at": "2024-01-01T10:05:00"
+  }
 }
 ```
 
-### 3. Obter Dados do Usuário Logado
+### 3. Criar Usuário (Requer Cookie de Superuser)
 
 ```bash
-curl -X GET "http://localhost:8000/api/v1/auth/me" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-**Resposta:**
-```json
-{
-  "id": "uuid-here",
-  "email": "user@example.com",
-  "username": "johndoe",
-  "firstname": "John",
-  "lastname": "Doe",
-  "is_active": true,
-  "is_superuser": false,
-  "last_login": "2024-01-01T10:05:00",
-  "created_at": "2024-01-01T10:00:00",
-  "updated_at": "2024-01-01T10:05:00"
-}
-```
-
-### 4. Renovar Token
-
-```bash
-curl -X POST "http://localhost:8000/api/v1/auth/refresh" \
+curl -X POST "http://localhost:8000/api/v1/auth/create-user" \
   -H "Content-Type: application/json" \
+  -b cookies.txt \
   -d '{
-    "refresh_token": "YOUR_REFRESH_TOKEN"
+    "email": "user@example.com",
+    "username": "johndoe",
+    "firstname": "John",
+    "lastname": "Doe",
+    "password": "strongpassword123"
   }'
 ```
 
-### 5. Logout
+### 4. Obter Dados do Usuário Logado (Usa Cookies)
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/auth/me" \
+  -b cookies.txt
+```
+
+### 5. Renovar Tokens (Usa Cookies)
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/auth/refresh" \
+  -b cookies.txt -c cookies.txt
+```
+
+### 6. Logout (Remove Cookies)
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/auth/logout" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+  -b cookies.txt
 ```
 
 ## 🔧 Configurações
@@ -230,8 +242,10 @@ curl -X POST "http://localhost:8000/api/v1/auth/logout" \
 | `REDIS_URL` | URL de conexão Redis | `redis://localhost:6379/0` |
 | `SECRET_KEY` | Chave secreta para JWT | `your-super-secret-key-change-in-production` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Expiração do access token (minutos) | `30` |
-| `SUPERUSER_USERNAME` | Username para registro de usuários | `admin` |
-| `SUPERUSER_PASSWORD` | Password para registro de usuários | `admin123` |
+| `SUPERUSER_USERNAME` | Username para criação de admin | `admin` |
+| `SUPERUSER_PASSWORD` | Password para criação de admin | `admin123` |
+| `ADMIN_CREATION_TOKEN` | Token fixo para criação de admin | `create-admin-secure-token-2024` |
+| `ENVIRONMENT` | Ambiente da aplicação (development/production) | `development` |
 
 ## 🏗️ Arquitetura
 
@@ -245,11 +259,13 @@ Este projeto segue os princípios da **Arquitetura Limpa**:
 ## 🔒 Segurança
 
 - Senhas hasheadas com bcrypt
-- JWT com access e refresh tokens
-- Registro protegido por Basic Authentication
+- JWT com access e refresh tokens em cookies HttpOnly
+- Criação de admin protegida por Basic Auth + Token fixo
 - Sistema de permissões com superuser/user
+- Controle de transações com rollback automático
 - Blacklist de tokens no logout
 - Validação de tokens em todas as rotas protegidas
+- Cookies seguros por ambiente (HttpOnly em produção)
 - CORS configurado
 
 ## 🚀 Desenvolvimento
