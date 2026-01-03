@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     environment: str = "development"
     
     # Cookie settings
+    cors_origins: list = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    
     @property
     def cookie_secure(self) -> bool:
         return self.environment == "production"
@@ -26,6 +28,10 @@ class Settings(BaseSettings):
     @property
     def cookie_httponly(self) -> bool:
         return self.environment == "production"
+    
+    @property
+    def cookie_samesite(self) -> str:
+        return "none" if self.environment == "production" else "lax"
     
     # Superuser for registration
     superuser_username: str = "admin"

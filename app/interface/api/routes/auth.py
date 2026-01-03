@@ -49,7 +49,7 @@ async def login(
             max_age=settings.access_token_expire_minutes * 60,
             httponly=settings.cookie_httponly,
             secure=settings.cookie_secure,
-            samesite="lax"
+            samesite=settings.cookie_samesite
         )
         
         response.set_cookie(
@@ -58,7 +58,7 @@ async def login(
             max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
             httponly=settings.cookie_httponly,
             secure=settings.cookie_secure,
-            samesite="lax"
+            samesite=settings.cookie_samesite
         )
         
         return LoginResponse(user=user)
@@ -85,7 +85,7 @@ async def refresh_token(
             max_age=settings.access_token_expire_minutes * 60,
             httponly=settings.cookie_httponly,
             secure=settings.cookie_secure,
-            samesite="lax"
+            samesite=settings.cookie_samesite
         )
         
         response.set_cookie(
@@ -94,7 +94,7 @@ async def refresh_token(
             max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
             httponly=settings.cookie_httponly,
             secure=settings.cookie_secure,
-            samesite="lax"
+            samesite=settings.cookie_samesite
         )
         
         return {"message": "Tokens refreshed successfully"}

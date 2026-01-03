@@ -10,11 +10,18 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS
+# CORS dinâmico baseado no ambiente
+if settings.environment == "production":
+    # Produção: Origins específicos
+    cors_origins = ["https://yourdomain.com"]  # Substitua pelo seu domínio
+else:
+    # Desenvolvimento: Localhost
+    cors_origins = settings.cors_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=True,  # CRÍTICO: Permite cookies
     allow_methods=["*"],
     allow_headers=["*"],
 )
